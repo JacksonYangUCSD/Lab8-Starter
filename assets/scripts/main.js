@@ -54,6 +54,19 @@ function initializeServiceWorker() {
   // B5. TODO - In the event that the service worker registration fails, console
   //            log that it has failed.
   // STEPS B6 ONWARDS WILL BE IN /sw.js
+  /**
+ * Detects if there's a service worker, then loads it and begins the process
+ * of installing it and getting it running
+ */
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then((registration) => {
+        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+      }).catch((error) => {
+        console.log('ServiceWorker registration failed: ', error);
+      });
+    });
+  }else console.log('Your browser does not support the Service-Worker!');
 }
 
 /**
@@ -67,6 +80,11 @@ function initializeServiceWorker() {
 async function getRecipes() {
   // EXPOSE - START (All expose numbers start with A)
   // A1. TODO - Check local storage to see if there are any recipes.
+  const localRecipes = localStorage.getItem('recipes');
+  if (localRecipes) {
+    return JSON.parse(localRecipes);
+  }
+
   //            If there are recipes, return them.
   /**************************/
   // The rest of this method will be concerned with requesting the recipes
@@ -100,6 +118,31 @@ async function getRecipes() {
   //            resolve() method.
   // A10. TODO - Log any errors from catch using console.error
   // A11. TODO - Pass any errors to the Promise's reject() function
+  const recipes = [];
+  return new Promise(async (resolve, reject) => {
+    try {
+      for (const url of RECIPE_URLS) {
+        try {
+          const response = await fetch(url);
+          
+          const recipe = await response.json();
+
+          recipes.push(recipe);
+
+          if (recipes.length === RECIPE_URLS.length) {
+            saveRecipesToStorage(recipes);
+            resolve(recipes);
+          }
+        } catch (fetchError) {
+          console.error(fetchError);
+          reject(fetchError);
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      reject(error);
+    }
+  });
 }
 
 /**
